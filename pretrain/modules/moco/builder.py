@@ -136,8 +136,8 @@ class ContrastiveModel(nn.Module):
             offset = torch.arange(0, 2 * batch_size, 2).to(sal_q.device)
             sal_q = (sal_q + torch.reshape(offset, [-1, 1, 1]))*sal_q # all bg's to 0
             sal_q = sal_q.view(-1)
-            mask_indexes = torch.nonzero((sal_q)).view(-1).squeeze()
-            sal_q = torch.index_select(sal_q, index=mask_indexes, dim=0) // 2
+            mask_indexes = torch.nonzero((sal_q)).view(-1).squeeze()  # 正样本对应的Index
+            sal_q = torch.index_select(sal_q, index=mask_indexes, dim=0) // 2  # 正样本对应的label,[0...N-1], 每张图假设有一个object，这个object中的像素的label是一致的
 
         # compute key prototypes
         with torch.no_grad():  # no gradient to keys
@@ -154,8 +154,8 @@ class ContrastiveModel(nn.Module):
             
             # prototypes k
             k = k.reshape(batch_size, self.dim, -1) # B x dim x H.W
-            sal_k = sal_k.reshape(batch_size, -1, 1).type(k.dtype) # B x H.W x 1
-            prototypes_foreground = torch.bmm(k, sal_k).squeeze() # B x dim
+            sal_k = sal_k.reshape(batch_size, -1, 1).type(k.dtype) # B x H.W x 1， 
+            prototypes_foreground = torch.bmm(k, sal_k).squeeze() # B x dim  对图像上属于object的像素求和，作为当前object的正样本
             prototypes = nn.functional.normalize(prototypes_foreground, dim=1)        
 
         # q: pixels x dim
